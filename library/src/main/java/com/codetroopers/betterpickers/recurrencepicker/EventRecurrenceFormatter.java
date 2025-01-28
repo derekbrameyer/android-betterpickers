@@ -21,159 +21,162 @@ import android.content.res.Resources;
 import android.text.format.DateUtils;
 import android.text.format.Time;
 import android.util.TimeFormatException;
-
 import com.codetroopers.betterpickers.R;
-
 import java.util.Calendar;
 
 public class EventRecurrenceFormatter {
 
-    private static int[] mMonthRepeatByDayOfWeekIds;
-    private static String[][] mMonthRepeatByDayOfWeekStrs;
+  private static int[] mMonthRepeatByDayOfWeekIds;
+  private static String[][] mMonthRepeatByDayOfWeekStrs;
 
-    public static String getRepeatString(Context context, Resources r, EventRecurrence recurrence, boolean includeEndString) {
-        String endString = "";
-        if (includeEndString) {
-            StringBuilder sb = new StringBuilder();
-            if (recurrence.until != null) {
-                try {
-                    Time time = new Time();
-                    time.parse(recurrence.until);
-                    final String dateStr = DateUtils.formatDateTime(context, time.toMillis(false), DateUtils.FORMAT_NUMERIC_DATE);
-                    sb.append(r.getString(R.string.endByDate, dateStr));
-                } catch (TimeFormatException e) {
-                }
-            }
-
-            if (recurrence.count > 0) {
-                sb.append(r.getQuantityString(R.plurals.endByCount, recurrence.count,
-                        recurrence.count));
-            }
-            endString = sb.toString();
+  public static String getRepeatString(
+      Context context, Resources r, EventRecurrence recurrence, boolean includeEndString) {
+    String endString = "";
+    if (includeEndString) {
+      StringBuilder sb = new StringBuilder();
+      if (recurrence.until != null) {
+        try {
+          Time time = new Time();
+          time.parse(recurrence.until);
+          final String dateStr =
+              DateUtils.formatDateTime(
+                  context, time.toMillis(false), DateUtils.FORMAT_NUMERIC_DATE);
+          sb.append(r.getString(R.string.endByDate, dateStr));
+        } catch (TimeFormatException e) {
+          e.printStackTrace();
         }
+      }
 
-        // TODO Implement "Until" portion of string, as well as custom settings
-        int interval = recurrence.interval <= 1 ? 1 : recurrence.interval;
-        switch (recurrence.freq) {
-            case EventRecurrence.HOURLY:
-                return r.getQuantityString(R.plurals.hourly, interval, interval) + endString;
-            case EventRecurrence.DAILY:
-                return r.getQuantityString(R.plurals.daily, interval, interval) + endString;
-            case EventRecurrence.WEEKLY: {
-                if (recurrence.repeatsOnEveryWeekDay()) {
-                    return r.getString(R.string.every_weekday) + endString;
-                } else {
-                    String string;
-
-                    int dayOfWeekLength = DateUtils.LENGTH_MEDIUM;
-                    if (recurrence.bydayCount == 1) {
-                        dayOfWeekLength = DateUtils.LENGTH_LONG;
-                    }
-
-                    StringBuilder days = new StringBuilder();
-
-                    // Do one less iteration in the loop so the last element is added out of the
-                    // loop. This is done so the comma is not placed after the last item.
-
-                    if (recurrence.bydayCount > 0) {
-                        int count = recurrence.bydayCount - 1;
-                        for (int i = 0; i < count; i++) {
-                            days.append(dayToString(recurrence.byday[i], dayOfWeekLength));
-                            days.append(", ");
-                        }
-                        days.append(dayToString(recurrence.byday[count], dayOfWeekLength));
-
-                        string = days.toString();
-                    } else {
-                        // There is no "BYDAY" specifier, so use the day of the
-                        // first event.  For this to work, the setStartDate()
-                        // method must have been used by the caller to set the
-                        // date of the first event in the recurrence.
-                        if (recurrence.startDate == null) {
-                            return null;
-                        }
-
-                        int day = EventRecurrence.timeDay2Day(recurrence.startDate.weekDay);
-                        string = dayToString(day, DateUtils.LENGTH_LONG);
-                    }
-                    return r.getQuantityString(R.plurals.weekly, interval, interval, string) + endString;
-                }
-            }
-            case EventRecurrence.MONTHLY: {
-                String details = "";
-                if (recurrence.byday != null) {
-                    int weekday = EventRecurrence.day2CalendarDay(recurrence.byday[0]) - 1;
-                    // Cache this stuff so we won't have to redo work again later.
-                    cacheMonthRepeatStrings(r, weekday);
-
-                    int dayNumber = recurrence.bydayNum[0];
-                    if(dayNumber == RecurrencePickerDialogFragment.LAST_NTH_DAY_OF_WEEK){
-                        dayNumber = 5;
-                    }
-                    details = mMonthRepeatByDayOfWeekStrs[weekday][dayNumber - 1];
-                }
-                return r.getQuantityString(R.plurals.monthly, interval, interval, details) + endString;
-            }
-            case EventRecurrence.YEARLY:
-                return r.getQuantityString(R.plurals.yearly_plain, interval, interval, "") + endString;
-        }
-
-        return null;
+      if (recurrence.count > 0) {
+        sb.append(r.getQuantityString(R.plurals.endByCount, recurrence.count, recurrence.count));
+      }
+      endString = sb.toString();
     }
 
-    private static void cacheMonthRepeatStrings(Resources r, int weekday) {
-        if (mMonthRepeatByDayOfWeekIds == null) {
-            mMonthRepeatByDayOfWeekIds = new int[7];
-            mMonthRepeatByDayOfWeekIds[0] = R.array.repeat_by_nth_sun;
-            mMonthRepeatByDayOfWeekIds[1] = R.array.repeat_by_nth_mon;
-            mMonthRepeatByDayOfWeekIds[2] = R.array.repeat_by_nth_tues;
-            mMonthRepeatByDayOfWeekIds[3] = R.array.repeat_by_nth_wed;
-            mMonthRepeatByDayOfWeekIds[4] = R.array.repeat_by_nth_thurs;
-            mMonthRepeatByDayOfWeekIds[5] = R.array.repeat_by_nth_fri;
-            mMonthRepeatByDayOfWeekIds[6] = R.array.repeat_by_nth_sat;
+    // TODO Implement "Until" portion of string, as well as custom settings
+    int interval = recurrence.interval <= 1 ? 1 : recurrence.interval;
+    switch (recurrence.freq) {
+      case EventRecurrence.HOURLY:
+        return r.getQuantityString(R.plurals.hourly, interval, interval) + endString;
+      case EventRecurrence.DAILY:
+        return r.getQuantityString(R.plurals.daily, interval, interval) + endString;
+      case EventRecurrence.WEEKLY:
+        {
+          if (recurrence.repeatsOnEveryWeekDay()) {
+            return r.getString(R.string.every_weekday) + endString;
+          } else {
+            String string;
+
+            int dayOfWeekLength = DateUtils.LENGTH_MEDIUM;
+            if (recurrence.bydayCount == 1) {
+              dayOfWeekLength = DateUtils.LENGTH_LONG;
+            }
+
+            StringBuilder days = new StringBuilder();
+
+            // Do one less iteration in the loop so the last element is added out of the
+            // loop. This is done so the comma is not placed after the last item.
+
+            if (recurrence.bydayCount > 0) {
+              int count = recurrence.bydayCount - 1;
+              for (int i = 0; i < count; i++) {
+                days.append(dayToString(recurrence.byday[i], dayOfWeekLength));
+                days.append(", ");
+              }
+              days.append(dayToString(recurrence.byday[count], dayOfWeekLength));
+
+              string = days.toString();
+            } else {
+              // There is no "BYDAY" specifier, so use the day of the
+              // first event.  For this to work, the setStartDate()
+              // method must have been used by the caller to set the
+              // date of the first event in the recurrence.
+              if (recurrence.startDate == null) {
+                return null;
+              }
+
+              int day = EventRecurrence.timeDay2Day(recurrence.startDate.weekDay);
+              string = dayToString(day, DateUtils.LENGTH_LONG);
+            }
+            return r.getQuantityString(R.plurals.weekly, interval, interval, string) + endString;
+          }
         }
-        if (mMonthRepeatByDayOfWeekStrs == null) {
-            mMonthRepeatByDayOfWeekStrs = new String[7][];
+      case EventRecurrence.MONTHLY:
+        {
+          String details = "";
+          if (recurrence.byday != null) {
+            int weekday = EventRecurrence.day2CalendarDay(recurrence.byday[0]) - 1;
+            // Cache this stuff so we won't have to redo work again later.
+            cacheMonthRepeatStrings(r, weekday);
+
+            int dayNumber = recurrence.bydayNum[0];
+            if (dayNumber == RecurrencePickerDialogFragment.LAST_NTH_DAY_OF_WEEK) {
+              dayNumber = 5;
+            }
+            details = mMonthRepeatByDayOfWeekStrs[weekday][dayNumber - 1];
+          }
+          return r.getQuantityString(R.plurals.monthly, interval, interval, details) + endString;
         }
-        if (mMonthRepeatByDayOfWeekStrs[weekday] == null) {
-            mMonthRepeatByDayOfWeekStrs[weekday] = r.getStringArray(mMonthRepeatByDayOfWeekIds[weekday]);
-        }
+      case EventRecurrence.YEARLY:
+        return r.getQuantityString(R.plurals.yearly_plain, interval, interval, "") + endString;
     }
 
-    /**
-     * Converts day of week to a String.
-     *
-     * @param day a EventRecurrence constant
-     * @return day of week as a string
-     */
-    private static String dayToString(int day, int dayOfWeekLength) {
-        return DateUtils.getDayOfWeekString(dayToUtilDay(day), dayOfWeekLength);
-    }
+    return null;
+  }
 
-    /**
-     * Converts EventRecurrence's day of week to DateUtil's day of week.
-     *
-     * @param day of week as an EventRecurrence value
-     * @return day of week as a DateUtil value.
-     */
-    private static int dayToUtilDay(int day) {
-        switch (day) {
-            case EventRecurrence.SU:
-                return Calendar.SUNDAY;
-            case EventRecurrence.MO:
-                return Calendar.MONDAY;
-            case EventRecurrence.TU:
-                return Calendar.TUESDAY;
-            case EventRecurrence.WE:
-                return Calendar.WEDNESDAY;
-            case EventRecurrence.TH:
-                return Calendar.THURSDAY;
-            case EventRecurrence.FR:
-                return Calendar.FRIDAY;
-            case EventRecurrence.SA:
-                return Calendar.SATURDAY;
-            default:
-                throw new IllegalArgumentException("bad day argument: " + day);
-        }
+  private static void cacheMonthRepeatStrings(Resources r, int weekday) {
+    if (mMonthRepeatByDayOfWeekIds == null) {
+      mMonthRepeatByDayOfWeekIds = new int[7];
+      mMonthRepeatByDayOfWeekIds[0] = R.array.repeat_by_nth_sun;
+      mMonthRepeatByDayOfWeekIds[1] = R.array.repeat_by_nth_mon;
+      mMonthRepeatByDayOfWeekIds[2] = R.array.repeat_by_nth_tues;
+      mMonthRepeatByDayOfWeekIds[3] = R.array.repeat_by_nth_wed;
+      mMonthRepeatByDayOfWeekIds[4] = R.array.repeat_by_nth_thurs;
+      mMonthRepeatByDayOfWeekIds[5] = R.array.repeat_by_nth_fri;
+      mMonthRepeatByDayOfWeekIds[6] = R.array.repeat_by_nth_sat;
     }
+    if (mMonthRepeatByDayOfWeekStrs == null) {
+      mMonthRepeatByDayOfWeekStrs = new String[7][];
+    }
+    if (mMonthRepeatByDayOfWeekStrs[weekday] == null) {
+      mMonthRepeatByDayOfWeekStrs[weekday] = r.getStringArray(mMonthRepeatByDayOfWeekIds[weekday]);
+    }
+  }
+
+  /**
+   * Converts day of week to a String.
+   *
+   * @param day a EventRecurrence constant
+   * @return day of week as a string
+   */
+  private static String dayToString(int day, int dayOfWeekLength) {
+    return DateUtils.getDayOfWeekString(dayToUtilDay(day), dayOfWeekLength);
+  }
+
+  /**
+   * Converts EventRecurrence's day of week to DateUtil's day of week.
+   *
+   * @param day of week as an EventRecurrence value
+   * @return day of week as a DateUtil value.
+   */
+  private static int dayToUtilDay(int day) {
+    switch (day) {
+      case EventRecurrence.SU:
+        return Calendar.SUNDAY;
+      case EventRecurrence.MO:
+        return Calendar.MONDAY;
+      case EventRecurrence.TU:
+        return Calendar.TUESDAY;
+      case EventRecurrence.WE:
+        return Calendar.WEDNESDAY;
+      case EventRecurrence.TH:
+        return Calendar.THURSDAY;
+      case EventRecurrence.FR:
+        return Calendar.FRIDAY;
+      case EventRecurrence.SA:
+        return Calendar.SATURDAY;
+      default:
+        throw new IllegalArgumentException("bad day argument: " + day);
+    }
+  }
 }
